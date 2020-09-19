@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'SAM template for Retail Store Carts Service API. Resources include  Lambda
+  and API Gateway
+
+  '
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+    - dev
+    - staging
+    - prod
+Globals:
+  Function:
+    Timeout: 30
+    Environment:
+      Variables:
+        STAGE:
+          Ref: Environment
+Resources:
+  CartsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://retail-store-deployment-ur9utvmxjwu51t8gyfodw/9ec53488318f47d6686dd4da708088b3
+      Handler: main
+      Runtime: go1.x
+      Events:
+        CartsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: CartsAWSApiGateway
+            Path: /carts/{proxy+}
+            Method: ANY
+      Policies:
+      - CloudWatchPutMetricPolicy: {}
+  CartsLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: CartsFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${CartsAWSApiGateway}/*
+  CartsAWSApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName:
+        Ref: Environment
+      Tags:
+        Service: Carts
+        AppType: Serverless
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: API Gateway - Retail Store Carts Service
+          description: API Gateway - Retail Store Carts Service
+          version: 1.0.0
+        host:
+          Fn::Sub: execute-api.${AWS::Region}.amazonaws.com
+        schemes:
+        - https
+        basePath:
+          Fn::Sub: /${Environment}
+        paths:
+          /carts/{proxy+}:
+            x-summary: Customer carts
+            x-amazon-apigateway-any-method:
+              produces:
+              - application/json
+              parameters:
+              - name: proxy
+                in: path
+                required: true
+                schema:
+                  type: string
+              responses: {}
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${CartsFunction}/invocations
+                passthroughBehaviour: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+Outputs:
+  CartsAWSApiGateway:
+    Description: API Gateway endpoint URL for Dev stage for Carts Service
+    Value:
+      Fn::Sub: https://${CartsAWSApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/
+  CartsAWSApiGatewayRestApiId:
+    Description: API Gateway ARN for Carts AWS API Gateway
+    Value:
+      Ref: CartsAWSApiGateway
+    Export:
+      Name: CartsAWSApiGateway-RestApiId
+  CartsAWSApiGatewayRootResourceId:
+    Value:
+      Fn::GetAtt:
+      - CartsAWSApiGateway
+      - RootResourceId
+    Export:
+      Name: CartsAWSApiGateway-RootResourceId

@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM template for Retail Store Users Service
+  API. Resources include DynamoDB Tables, Lambda and API Gateway
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Globals:
+  Function:
+    Timeout: 30
+    Environment: 
+      Variables:
+        STAGE: !Ref Environment
+        
+
+Resources:
+  UsersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bin/app.zip
+      Handler: main
+      Runtime: go1.x
+      Events:
+        UsersApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UsersAWSApiGateway
+            Path: /{proxy+}
+            Method: GET
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+
+  UsersLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref UsersFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${UsersAWSApiGateway}/*"
+
+  UsersAWSApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Tags:
+        Service: Users
+        AppType: Serverless
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: API Gateway - Retail Store Users Service
+          description: API Gateway - Retail Store Users Service
+          version: "1.0.0"
+        host: !Sub "execute-api.${AWS::Region}.amazonaws.com"
+        schemes:
+          - https
+        basePath: !Sub "/${Environment}"    
+        paths:
+          /{proxy+}:
+            x-summary: List of Users
+            x-amazon-apigateway-any-method:
+              produces:
+               - application/json
+              parameters:
+               - name: proxy
+                 in: path
+                 required: true
+                 schema: 
+                   type: string
+              responses: {}
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${UsersFunction}/invocations"
+                passthroughBehaviour: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+Outputs:
+  UsersAWSApiGateway:
+    Description: "API Gateway endpoint URL for Dev stage for Users Service"
+    Value: !Sub "https://${UsersAWSApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+  UsersAWSApiGatewayRestApiId:
+    Description: 'API Gateway ARN for Basic AWS API Gateway'
+    Value: !Ref UsersAWSApiGateway
+    Export:
+      Name: UsersAWSApiGateway-RestApiId
+  UsersAWSApiGatewayRootResourceId:
+    Value: !GetAtt UsersAWSApiGateway.RootResourceId
+    Export:
+      Name: UsersAWSApiGateway-RootResourceId
+
+
+
+

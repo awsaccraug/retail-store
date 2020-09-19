@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM template for Retail Store Orders Service
+  API. Resources include Lambda and API Gateway
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Globals:
+  Function:
+    Timeout: 30
+    Environment: 
+      Variables:
+        STAGE: !Ref Environment
+        
+
+Resources:
+  OrdersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bin/app.zip
+      Handler: main
+      Runtime: go1.x
+      Events:
+        OrdersApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OrdersAWSApiGateway
+            Path: /{proxy+}
+            Method: GET
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+
+  OrdersLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OrdersFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${OrdersAWSApiGateway}/*"
+
+  OrdersAWSApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Tags:
+        Service: Orders
+        AppType: Serverless
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: API Gateway - Retail Store Orders Service
+          description: API Gateway - Retail Store Orders Service
+          version: "1.0.0"
+        host: !Sub "execute-api.${AWS::Region}.amazonaws.com"
+        schemes:
+          - https
+        basePath: !Sub "/${Environment}"    
+        paths:
+          /{proxy+}:
+            x-summary: List of Orders
+            x-amazon-apigateway-any-method:
+              produces:
+               - application/json
+              parameters:
+               - name: proxy
+                 in: path
+                 required: true
+                 schema: 
+                   type: string
+              responses: {}
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${OrdersFunction}/invocations"
+                passthroughBehaviour: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+Outputs:
+  OrdersAWSApiGateway:
+    Description: "API Gateway endpoint URL for Dev stage for Orders Service"
+    Value: !Sub "https://${OrdersAWSApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+  OrdersAWSApiGatewayRestApiId:
+    Description: 'API Gateway ARN for Orders AWS API Gateway'
+    Value: !Ref OrdersAWSApiGateway
+    Export:
+      Name: OrdersAWSApiGateway-RestApiId
+  OrdersAWSApiGatewayRootResourceId:
+    Value: !GetAtt OrdersAWSApiGateway.RootResourceId
+    Export:
+      Name: OrdersAWSApiGateway-RootResourceId
+
+
+
+
