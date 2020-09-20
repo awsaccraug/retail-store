@@ -197,42 +197,6 @@ Resources:
         ParentStackName: !Ref AWS::StackName
         OptimizelySdkKey: !Ref OptimizelySdkKey
 
-  # Services Resources
-  Services:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub https://s3.amazonaws.com/${ResourceBucket}/${ResourceBucketRelativePath}cloudformation-templates/services/_template.yaml
-      Parameters:
-        ResourceBucket: !Ref ResourceBucket
-        ResourceBucketRelativePath: !Ref ResourceBucketRelativePath
-        SourceDeploymentType: !Ref SourceDeploymentType
-        GitHubRepo: !Ref GitHubRepo
-        GitHubBranch: !Ref GitHubBranch
-        GitHubToken: !Ref GitHubToken
-        GitHubUser: !Ref GitHubUser
-        UserPoolId: !GetAtt Base.Outputs.UserPoolId
-        UserPoolClientId: !GetAtt Base.Outputs.UserPoolClientId
-        IdentityPoolId: !GetAtt Base.Outputs.IdentityPoolId
-        StackBucketName: !GetAtt Base.Outputs.StackBucketName
-        Subnets: !GetAtt Base.Outputs.Subnets
-        VpcId: !GetAtt Base.Outputs.VpcId
-        ClusterName: !GetAtt Base.Outputs.ClusterName
-        ServiceDiscoveryNamespace: !GetAtt Base.Outputs.ServiceDiscoveryNamespace
-        EnvElasticsearchDomainEndpoint: !GetAtt Base.Outputs.ElasticsearchDomainEndpoint
-        PinpointAppId: !GetAtt Base.Outputs.PinpointAppId
-        ProductsTable: !GetAtt Base.Outputs.ProductsTable
-        CategoriesTable: !GetAtt Base.Outputs.CategoriesTable
-        ExperimentStrategyTable: !GetAtt Base.Outputs.ExperimentStrategyTable
-        ParameterPersonalizeEventTrackerId: !GetAtt Base.Outputs.ParameterPersonalizeEventTrackerId
-        ParameterAmplitudeApiKey: !GetAtt Base.Outputs.ParameterAmplitudeApiKey
-        ParameterOptimizelySdkKey: !GetAtt Base.Outputs.ParameterOptimizelySdkKey
-        CleanupBucketLambdaArn: !GetAtt CleanupBucket.Outputs.LambdaFunctionArn
-        WebRootUrl: !GetAtt Base.Outputs.WebUICDNURL
-        ImageRootUrl: !Sub 
-          - '${RootURL}/images/'
-          - RootURL: !GetAtt Base.Outputs.WebUICDNURL
-        ParentStackName: !Ref AWS::StackName
-
   # Web UI Pipeline
   WebUIPipeline:
     Type: AWS::CloudFormation::Stack

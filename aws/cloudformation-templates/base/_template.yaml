@@ -85,27 +85,6 @@ Resources:
         ExperimentStrategyTable: !GetAtt Tables.Outputs.ExperimentStrategyTable
         StackBucketName: !GetAtt Buckets.Outputs.StackBucketName
         Uid: !Sub ${ParentStackName}-${AWS::Region}
-        
-  # Tables
-  Tables:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub https://s3.amazonaws.com/${ResourceBucket}/${ResourceBucketRelativePath}cloudformation-templates/base/tables.yaml
-
-  # ServiceDiscovery
-  ServiceDiscovery:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub https://s3.amazonaws.com/${ResourceBucket}/${ResourceBucketRelativePath}cloudformation-templates/base/servicediscovery.yaml
-      Parameters:
-        VpcId: !GetAtt VPC.Outputs.VpcId
-
-  # ECS Cluster
-  ECSCluster:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub https://s3.amazonaws.com/${ResourceBucket}/${ResourceBucketRelativePath}cloudformation-templates/base/ecs-cluster.yaml
-
   # VPC
   VPC:
     Type: AWS::CloudFormation::Stack
@@ -228,10 +207,6 @@ Outputs:
     Description: ECS Cluster Name.
     Value: !GetAtt ECSCluster.Outputs.ClusterName
 
-  ServiceDiscoveryNamespace:
-    Description: Service Discovery Namespace.
-    Value: !GetAtt ServiceDiscovery.Outputs.ServiceDiscoveryNamespace
-
   ElasticsearchDomainEndpoint:
     Description: Elasticsearch Domain
     Value: !GetAtt Elasticsearch.Outputs.DomainEndpoint
@@ -247,14 +222,6 @@ Outputs:
   PinpointAppId:
     Description: Pinpoint App Id
     Value: !GetAtt Pinpoint.Outputs.PinpointAppId
-
-  ProductsTable:
-    Description: DynamoDB Table for Products
-    Value: !GetAtt Tables.Outputs.ProductsTable
-
-  CategoriesTable: 
-    Description: DynamoDB Table for Categories
-    Value: !GetAtt Tables.Outputs.CategoriesTable
 
   ExperimentStrategyTable: 
     Description: DynamoDB Table for Experiments
